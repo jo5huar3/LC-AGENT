@@ -17,7 +17,6 @@ class RelationalDB:
         self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row  # rows behave like dicts
 
-    # ---------- DDL ----------------------------------------------------
     def create_table(self, name: str, schema_sql: str) -> None:
         """
         Example:  db.create_table("tasks",
