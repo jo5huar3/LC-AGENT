@@ -22,7 +22,7 @@ db.create_table("web_content",
 
 tables = db.fetch(
     """
-    SELECT *
+    SELECT name
     FROM sqlite_master
     WHERE type = 'table'
       AND name NOT LIKE 'sqlite_%'   -- skip SQLite’s internal tables
