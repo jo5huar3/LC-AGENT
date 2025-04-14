@@ -41,5 +41,25 @@ class RelationalDB:
         cur = self.conn.execute(sql, params or ())
         return [dict(row) for row in cur.fetchall()]
 
+    def newFetch(self, tbl: str, columns: Iterable[str] | str = "*",
+                cond: Dict[str, Any] | None = None) -> List[Row]:
+        if columns == "*" or columns == ["*"]:
+            col_sql = "*"
+            params = ()
+        else:
+            col_sql = ", ".join(f'"{c}"' for c in columns)
+            params = ()
+
+        if cond:
+            where = " AND ".join(f'"{k}" = ?' for k in cond)
+            params += tuple(cond.values())
+            where_sql = f" WHERE {where}"
+        else:
+            where_sql = ""
+
+        sql = f'SELECT {col_sql} FROM "{tbl}"{where_sql};'
+        cur = self.conn.execute(sql, params)
+        return [dict(row) for row in cur.fetchall()]
+        
     def close(self) -> None:
         self.conn.close()
