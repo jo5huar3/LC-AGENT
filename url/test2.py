@@ -10,3 +10,8 @@ soup  = bs4.BeautifulSoup(html, "lxml")      # or "html.parser"
 all_tree_parents = soup.select("li.treeParent")
 print(len(all_tree_parents))                 # ← not zero, even if collapsed
 print(all_tree_parents)
+
+'''
+
+
+'''

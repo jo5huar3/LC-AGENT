@@ -10,20 +10,28 @@ class SubjectScraper:
         self.base_url = base_url
         self.tagPool = []
         self.urlPool = []
+        self.scrapeThis = []
 
-    def setTagPool(self, subject: str, criteria: str = ""):
+    def setTagPool(self, subject: str, root: str = "", leaf: str = ""):
         html  = requests.get(self.base_url).text
         soup  = bs4.BeautifulSoup(html, "lxml") 
-        allTags = soup.select(criteria)
+        allTags = soup.select(root)
         self.tagPool = [tag for tag in allTags if tag.get_text(strip=True) in subject ]
         self.urlPool = [urljoin(self.base_url, tag.find("a")["href"]) for tag in self.tagPool]
         
+        print(self.urlPool, "\n\n\n\n")
+
         for url in self.urlPool:
             html  = requests.get(url).text
             soup  = bs4.BeautifulSoup(html, "lxml") 
-            print(soup)
+            allTags = soup.select(leaf)
+            for tag in allTags:
+                self.scrapeThis.append(  urljoin(self.base_url, tag["href"]) )  
+        print(self.scrapeThis)                
 
 
+
+# https://docs.oracle.com/cd/F70249_01/pt860pbr1/eng/pt/tape/ApplicationEngineOverview.html?pli=ul_d328e35_tape
 
     def get_links(self) -> list[tuple[str, str]]:
         """
@@ -74,6 +82,26 @@ if __name__ == '__main__':
     START_URL = 'https://docs.oracle.com/cd/F70249_01/pt860pbr1/eng/pt/index.html?focusnode=home'
     scraper = SubjectScraper(START_URL)
 
-    scraper.setTagPool("Application Engine", "li.treeParent")
+    #scraper.setTagPool("Application Engine", "li.treeParent")
+    scraper.setTagPool("Application Engine",  "li.treeParent", "a.sbchild")
+
     # 2) Choose the subject you care about
     #scraper.scrape_by_subject("PeopleTools Overview")
+
+
+'''
+def setTagPool(self, subject: str, criteria: str = ""):
+        html  = requests.get(self.base_url).text
+        soup  = bs4.BeautifulSoup(html, "lxml") 
+        allTags = soup.select(criteria)
+        self.tagPool = [tag for tag in allTags if tag.get_text(strip=True) in subject ]
+        self.urlPool = [urljoin(self.base_url, tag.find("a")["href"]) for tag in self.tagPool]
+        
+        print(self.urlPool)
+
+        for url in self.urlPool:
+            html  = requests.get(url).text
+            soup  = bs4.BeautifulSoup(html, "lxml") 
+            print(f"{soup}\n\nEND")
+
+'''
