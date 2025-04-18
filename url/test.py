@@ -16,11 +16,16 @@ class SubjectScraper:
         html  = requests.get(self.base_url).text
         soup  = bs4.BeautifulSoup(html, "lxml") 
         allTags = soup.select(root)
-        self.tagPool = [tag for tag in allTags if tag.get_text(strip=True) in subject ]
-        self.urlPool = [urljoin(self.base_url, tag.find("a")["href"]) for tag in self.tagPool]
+        tags = [tag for tag in allTags if subject in tag.get_text(strip=True) ]
+        for tag in tags:
+            a_ = tag.find_all(leaf)
+            for a in a_:
+                self.urlPool.append(urljoin(self.base_url, a["href"] ))
+            #self.urlPool.append() = [urljoin(self.base_url, tag.find("a")["href"]) for tag in self.tagPool]
         
         print(self.urlPool, "\n\n\n\n")
 
+        '''
         for url in self.urlPool:
             html  = requests.get(url).text
             soup  = bs4.BeautifulSoup(html, "lxml") 
@@ -28,7 +33,7 @@ class SubjectScraper:
             for tag in allTags:
                 self.scrapeThis.append(  urljoin(self.base_url, tag["href"]) )  
         print(self.scrapeThis)                
-
+        '''
 
 
 # https://docs.oracle.com/cd/F70249_01/pt860pbr1/eng/pt/tape/ApplicationEngineOverview.html?pli=ul_d328e35_tape
@@ -83,7 +88,7 @@ if __name__ == '__main__':
     scraper = SubjectScraper(START_URL)
 
     #scraper.setTagPool("Application Engine", "li.treeParent")
-    scraper.setTagPool("Application Engine",  "li.treeParent", "a.sbchild")
+    scraper.setTagPool("Application Engine",  "li.treeParent", "a")
 
     # 2) Choose the subject you care about
     #scraper.scrape_by_subject("PeopleTools Overview")
