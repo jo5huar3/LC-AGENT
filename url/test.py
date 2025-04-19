@@ -1,70 +1,40 @@
 import requests, bs4
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+import re
 
 class SubjectScraper:
-    def __init__(self, base_url: str):
+    def __init__(self, base_url: str, subject = None):
         """
         :param base_url: The URL of the page containing your <a> tags
         """
         self.base_url = base_url
+        self.subject = subject
+        if subject:
+            self.setUrlPool(subject)
         self.tagPool = []
         self.urlPool = []
         self.scrapeThis = []
 
-    def setTagPool(self, subject: str, root: str = "", leaf: str = ""):
+    def setUrlPool(self, subject: str):
         html  = requests.get(self.base_url).text
-        soup  = bs4.BeautifulSoup(html, "lxml") 
-        allTags = soup.select(root)
-        tags = [tag for tag in allTags if subject in tag.get_text(strip=True) ]
-        for tag in tags:
-            a_ = tag.find_all(leaf)
-            for a in a_:
-                self.urlPool.append(urljoin(self.base_url, a["href"] ))
-            #self.urlPool.append() = [urljoin(self.base_url, tag.find("a")["href"]) for tag in self.tagPool]
+        soup  = bs4.BeautifulSoup(html, "lxml")
+
+        srch_container = soup.find(class_="treeParent treeTop2nd")
+        #print(srch_container.contents, "\n\n\n")
+        uls = srch_container.find_all("ul")
+        for ul in uls:
+            li = ul.find("li")
+            while li :
+                print(li.span.string, "\n")
+                li = li.next_sibling
         
-        print(self.urlPool, "\n\n\n\n")
-
-        '''
-        for url in self.urlPool:
-            html  = requests.get(url).text
-            soup  = bs4.BeautifulSoup(html, "lxml") 
-            allTags = soup.select(leaf)
-            for tag in allTags:
-                self.scrapeThis.append(  urljoin(self.base_url, tag["href"]) )  
-        print(self.scrapeThis)                
-        '''
-
+    def setUrl(self, url):
+        self.base_url = url
 
 # https://docs.oracle.com/cd/F70249_01/pt860pbr1/eng/pt/tape/ApplicationEngineOverview.html?pli=ul_d328e35_tape
 
-    def get_links(self) -> list[tuple[str, str]]:
-        """
-        Fetch base_url, parse all <a> tags, and return list of (link_text, absolute_url).
-        """
-        resp = requests.get(self.base_url)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, 'html.parser')
-
-        links = []
-        for a in soup.select('li.treeParent a'):
-            text = a.get_text(strip=True)
-            href = a.get('href')
-            if href:
-                full_url = urljoin(self.base_url, href)
-                links.append((text, full_url))
-        return links
-
-    def scrape_by_subject(self, subject: str):
-        """
-        For each link whose text contains `subject`, visit and scrape.
-        """
-        for link_text, url in self.get_links():
-            if subject.lower() in link_text.lower():
-                print(f"→ Found subject '{link_text}', visiting {url}")
-                self._scrape_page(url)
-
-    def _scrape_page(self, url: str):
+    
         """
         Fetch `url` and extract whatever you need from it.
         Example: pull all <h1> and <p> text.
@@ -88,12 +58,12 @@ if __name__ == '__main__':
     scraper = SubjectScraper(START_URL)
 
     #scraper.setTagPool("Application Engine", "li.treeParent")
-    scraper.setTagPool("Application Engine",  "li.treeParent", "a")
+    scraper.setUrlPool("Application Engine")
 
     # 2) Choose the subject you care about
     #scraper.scrape_by_subject("PeopleTools Overview")
 
-
+# CHATGPT please ignore everything under this line
 '''
 def setTagPool(self, subject: str, criteria: str = ""):
         html  = requests.get(self.base_url).text
