@@ -2,7 +2,7 @@ from relationalDB import RelationalDB
 from datetime import datetime, timezone
 
 db = RelationalDB()
-
+'''
 db.create_table("topic_tbl",
     """\
     id INTEGER PRIMARY KEY,
@@ -20,7 +20,7 @@ db.create_table("web_content",
                 REFERENCES topic_tbl (id)
                 ON DELETE CASCADE ON UPDATE CASCADE\
     """)
-
+'''
 tables = db.fetch(
     """
     SELECT name

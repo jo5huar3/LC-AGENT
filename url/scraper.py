@@ -1,33 +1,42 @@
-import requests
+import requests, bs4
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin
 
-def extract_paragraph_text(url: str) -> list[str]:
-    """Return every <p> tag’s text (stripped) from *url*."""
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (compatible; ParagraphScraper/1.0; +https://github.com/you)"
-        )
-    }
-    resp = requests.get(url, headers=headers, timeout=10)
-    resp.raise_for_status()                # 4xx/5xx → exception
+class SubjectScraper:
+    def __init__(self, base_url: str):
+        """
+        :param base_url: The URL of the page containing your <a> tags
+        """
+        self.base_url = base_url
+        self.tagPool = []
+        self.urlPool = []
 
-    soup = BeautifulSoup(resp.text, "lxml")  # fast C‑based parser
-    p_text = [p.get_text(strip=True) for p in soup.find_all("p")]
-    return [p.replace(r"\n", " ") for p in p_text]
+    def setUrlPool(self, subject: str, root: str = "", leaf: str = ""):
+        html  = requests.get(self.base_url).text
+        soup  = bs4.BeautifulSoup(html, "lxml") 
+        allTags = soup.select(root)
+        self.tagPool = [tag for tag in allTags if tag.get_text(strip=True) in subject ]
+        urlPool = [urljoin(self.base_url, tag.find("a")["href"]) for tag in self.tagPool]
 
-def scrape_paragraphs(url: str) -> list[str]:
-    import requests, re
-    from bs4 import BeautifulSoup
+        for url in urlPool:
+            html  = requests.get(url).text
+            soup  = bs4.BeautifulSoup(html, "lxml") 
+            allTags = soup.select("a[href$='.html']")
+            for tag in allTags:
+                if len(tag.find_all()) > 1:
+                    continue
+                self.urlPool.append(  urljoin(self.base_url, tag["href"]) )
+      
 
-    html = requests.get(url, timeout=10).text
-    soup = BeautifulSoup(html, "lxml")
-    return [
-        re.sub(r"\s+", " ", p.get_text()).strip()
-        for p in soup.select("p")
-        if p.get_text(strip=True)      # skip completely empty <p>
-    ]
+    def printUrlPool(self):
+        for url in self.urlPool:
+            print(url)
 
+if __name__ == '__main__':
+    # 1) Set your starting page here
+    START_URL = 'https://docs.oracle.com/cd/F70249_01/pt860pbr1/eng/pt/index.html?focusnode=home'
+    scraper = SubjectScraper(START_URL)
 
-
-if __name__ == "__main__":
-    print(scrape_paragraphs("https://docs.oracle.com/cd/F70249_01/pt860pbr1/eng/pt/tape/ApplicationEngineOverview.html?pli=ul_d328e35_tape"))
+    #scraper.setTagPool("Application Engine", "li.treeParent")
+    scraper.setUrlPool("Application Engine",  "li.treeParent", "a.sbchild[href]")
+    scraper.printUrlPool()

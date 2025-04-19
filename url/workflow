@@ -1,6 +1,3 @@
-FLOW
+AI Agent
 
-set base url
-get urls to scrape
-
-
+if <p> tag is in table we will give the agent the table and ask it to turn table into a sentences.
