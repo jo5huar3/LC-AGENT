@@ -27,6 +27,9 @@ class SubjectScraper:
                     continue
                 self.urlPool.append(  urljoin(self.base_url, tag["href"]) )
       
+    def getUrls(self, max = -1):
+        return self.urlPool if max < 0 else self.urlPool[:max]
+
 
     def printUrlPool(self):
         for url in self.urlPool:
@@ -40,3 +43,5 @@ if __name__ == '__main__':
     #scraper.setTagPool("Application Engine", "li.treeParent")
     scraper.setUrlPool("Application Engine",  "li.treeParent", "a.sbchild[href]")
     scraper.printUrlPool()
+
+    print("\n\n\n", scraper.getUrls(5))
