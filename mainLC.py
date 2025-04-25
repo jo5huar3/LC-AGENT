@@ -30,5 +30,7 @@ from langchain_core.prompts import PromptTemplate
 model = ChatOpenAI(model="gpt-4o")
 
 
-response = model.invoke([HumanMessage(content="hi!")])
-print(response.content)
+
+while (prompt := input("Enter a prompt (q to quit): ")) != "q":
+    response = model.invoke(prompt)
+    print(response.content)
