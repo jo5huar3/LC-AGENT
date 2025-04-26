@@ -3,13 +3,15 @@ from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI
-from BasicToolNode import BasicToolNode
+#from BasicToolNode import BasicToolNode
 from langchain_core.tools import tool
 import io
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.prebuilt import ToolNode, tools_condition
 
 class State(TypedDict):
     # Messages have the type "list". The `add_messages` function
@@ -30,7 +32,7 @@ def RenderLangGraph(graph):
         plt.show()
     except Exception:
         # This requires some extra dependencies and is optional
-        print("exceptoin occured")
+        print("exception occured")
 
 class CalculatorInput(BaseModel):
     a: int = Field(description="first number")
@@ -41,15 +43,6 @@ def multiply(a: int, b: int) -> int:
     """Multiply two numbers."""
     print("multiply is called")
     return a * b
-
-
-calculator = StructuredTool.from_function(
-    func=multiply,
-    name="Calculator",
-    description="multiply numbers",
-    args_schema=CalculatorInput,
-    return_direct=True,
-)
 
 def route_tools(
     state: State,
@@ -68,13 +61,30 @@ def route_tools(
         return "tools"
     return END
 
+def stream_graph_updates(user_input: str):
+    for event in graph.stream({"messages": [{"role": "user", "content": user_input}]}):
+        for value in event.values():
+            print("Assistant:", value["messages"][-1].content)
+
+calculator = StructuredTool.from_function(
+    func=multiply,
+    name="Calculator",
+    description="multiply numbers",
+    args_schema=CalculatorInput,
+    return_direct=True,
+)
+
+memory = MemorySaver()
+
 graph_builder = StateGraph(State)
 
 llm = ChatOpenAI(model="o1")
 
 tools = [calculator]
 llm_with_tools = llm.bind_tools(tools)
-tool_node = BasicToolNode(tools=tools)
+#tool_node = BasicToolNode(tools=tools)
+tool_node = ToolNode(tools=[tool])
+
 # The first argument is the unique node name
 # The second argument is the function or object that will be called whenever
 # the node is used.
@@ -96,23 +106,29 @@ graph_builder.add_conditional_edges(
 # Any time a tool is called, we return to the chatbot to decide the next step
 graph_builder.add_edge("tools", "chatbot")
 graph_builder.add_edge(START, "chatbot")
-graph = graph_builder.compile()
+graph = graph_builder.compile(checkpointer=memory)
 # Display our LangGraph
 #RenderLangGraph(graph)
 
-def stream_graph_updates(user_input: str):
-    for event in graph.stream({"messages": [{"role": "user", "content": user_input}]}):
-        for value in event.values():
-            print("Assistant:", value["messages"][-1].content)
-
+config = {"configurable": {"thread_id": "main-thread"}}
 
 while True:
     try:
         user_input = input("User (quit | exit | q to quit): ")
+
         if user_input.lower() in ["quit", "exit", "q"]:
             print("Goodbye!")
             break
-        stream_graph_updates(user_input)
+        #stream_graph_updates(user_input)
+        events = graph.stream(
+            {"messages": [{"role": "user", "content": user_input}]},
+            config,
+            stream_mode="values",
+        )
+        for event in events:
+            event["messages"][-1].pretty_print()
+        #snapshot = graph.get_state(config)
+        #print(snapshot)
     except:
         # fallback if input() is not available
         user_input = "What do you know about LangGraph?"
