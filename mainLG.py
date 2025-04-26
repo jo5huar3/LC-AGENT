@@ -4,7 +4,6 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI
 #from BasicToolNode import BasicToolNode
-from langchain_core.tools import tool
 import io
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -12,15 +11,21 @@ from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import ToolNode, tools_condition
-
+from langchain_core.messages import ToolMessage
+from langchain_core.tools import InjectedToolCallId, tool
+from langgraph.types import Command, interrupt
+'''
+Human assistant is not working in this file.
+'''
 class State(TypedDict):
-    # Messages have the type "list". The `add_messages` function
-    # in the annotation defines how this state key should be updated
-    # (in this case, it appends messages to the list, rather than overwriting them)
     messages: Annotated[list, add_messages]
+    name: str
+    birthday: str
 
 def chatbot(state: State):
-    return {"messages": [llm.invoke(state["messages"])]}
+    message = llm_with_tools.invoke(state["messages"])
+    assert len(message.tool_calls) <= 1
+    return {"messages": [message]}
 
 def RenderLangGraph(graph):
     try:
@@ -34,10 +39,41 @@ def RenderLangGraph(graph):
         # This requires some extra dependencies and is optional
         print("exception occured")
 
+@tool
+def human_assistance(query: str) -> str:
+    """Request assistance from a human."""
+    """Request assistance from a human."""
+    human_response = interrupt(
+        {
+            "question": "Is this correct?",
+            "name": name,
+            "birthday": birthday,
+        },
+    )
+    # If the information is correct, update the state as-is.
+    if human_response.get("correct", "").lower().startswith("y"):
+        verified_name = name
+        verified_birthday = birthday
+        response = "Correct"
+    # Otherwise, receive information from the human reviewer.
+    else:
+        verified_name = human_response.get("name", name)
+        verified_birthday = human_response.get("birthday", birthday)
+        response = f"Made a correction: {human_response}"
+
+    # This time we explicitly update the state with a ToolMessage inside
+    # the tool.
+    state_update = {
+        "name": verified_name,
+        "birthday": verified_birthday,
+        "messages": [ToolMessage(response, tool_call_id=tool_call_id)],
+    }
+    # We return a Command object in the tool to update our state.
+    return Command(update=state_update)
+
 class CalculatorInput(BaseModel):
     a: int = Field(description="first number")
     b: int = Field(description="second number")
-
 
 def multiply(a: int, b: int) -> int:
     """Multiply two numbers."""
@@ -74,13 +110,11 @@ calculator = StructuredTool.from_function(
     return_direct=True,
 )
 
-memory = MemorySaver()
-
 graph_builder = StateGraph(State)
 
 llm = ChatOpenAI(model="o1")
 
-tools = [calculator]
+tools = [calculator, human_assistance]
 llm_with_tools = llm.bind_tools(tools)
 #tool_node = BasicToolNode(tools=tools)
 tool_node = ToolNode(tools=[tool])
@@ -95,17 +129,14 @@ graph_builder.add_node("tools", tool_node)
 # it is fine directly responding. This conditional routing defines the main agent loop.
 graph_builder.add_conditional_edges(
     "chatbot",
-    route_tools,
-    # The following dictionary lets you tell the graph to interpret the condition's outputs as a specific node
-    # It defaults to the identity function, but if you
-    # want to use a node named something else apart from "tools",
-    # You can update the value of the dictionary to something else
-    # e.g., "tools": "my_tools"
-    {"tools": "tools", END: END},
+    tools_condition,
+    #{"tools": "tools", END: END},
 )
 # Any time a tool is called, we return to the chatbot to decide the next step
 graph_builder.add_edge("tools", "chatbot")
 graph_builder.add_edge(START, "chatbot")
+
+memory = MemorySaver()
 graph = graph_builder.compile(checkpointer=memory)
 # Display our LangGraph
 #RenderLangGraph(graph)
