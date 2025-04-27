@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from llama_index.core.output_parsers import PydanticOutputParser
 from llama_index.core.query_pipeline import QueryPipeline
 from prompts import context, code_parser_template
-from code_reader import code_reader
+from examples.code_reader import code_reader
 import os
 import ast
 
