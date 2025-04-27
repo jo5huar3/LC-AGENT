@@ -3,17 +3,22 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
 class SubjectScraper:
-    def __init__(self, base_url: str):
+    def __init__(self, base_url: str, parser = "lxml"):
         """
         :param base_url: The URL of the page containing your <a> tags
         """
         self.base_url = base_url
         self.tagPool = []
         self.urlPool = []
+        self.parser = parser
+
+    def getSoup(self, url: str) -> bs4.BeautifulSoup:
+        html  = requests.get(url)
+        html.raise_for_status()
+        return bs4.BeautifulSoup(html.text, self.parser) 
 
     def setUrlPool(self, subject: str, root: str = "", leaf: str = ""):
-        html  = requests.get(self.base_url).text
-        soup  = bs4.BeautifulSoup(html, "lxml") 
+        soup  = self.getSoup(self.base_url)
         allTags = soup.select(root)
         self.tagPool = [tag for tag in allTags if tag.get_text(strip=True) in subject ]
         urlPool = [urljoin(self.base_url, tag.find("a")["href"]) for tag in self.tagPool]
@@ -30,6 +35,14 @@ class SubjectScraper:
     def getUrls(self, max = -1):
         return self.urlPool if max < 0 else self.urlPool[:max]
 
+    def extractTextContent(self, start = 0) -> str:
+        soup  = self.getSoup(self.urlPool[start])
+        heading = soup.find('h1').get_text()
+        paragraphs = [p.get_text() for p in soup.find_all("p")]
+        heading = heading.replace("\n", " ") 
+        extractText = [p.replace("\n", " ") for p in paragraphs]
+        extractText.insert(0, heading)
+        return "\n".join(extractText)
 
     def printUrlPool(self):
         for url in self.urlPool:
@@ -39,9 +52,8 @@ if __name__ == '__main__':
     # 1) Set your starting page here
     START_URL = 'https://docs.oracle.com/cd/F70249_01/pt860pbr1/eng/pt/index.html?focusnode=home'
     scraper = SubjectScraper(START_URL)
-
     #scraper.setTagPool("Application Engine", "li.treeParent")
     scraper.setUrlPool("Application Engine",  "li.treeParent", "a.sbchild[href]")
-    scraper.printUrlPool()
-
-    print("\n\n\n", scraper.getUrls(5))
+    #scraper.printUrlPool()
+    print("\n\n\n", scraper.getUrls(1))
+    print(scraper.extractTextContent())
