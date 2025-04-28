@@ -2,8 +2,8 @@ import requests, bs4
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-class SubjectScraper:
-    def __init__(self, base_url: str, parser = "lxml"):
+class WebScraper:
+    def __init__(self, base_url = None, parser = "lxml"):
         """
         :param base_url: The URL of the page containing your <a> tags
         """
@@ -11,6 +11,9 @@ class SubjectScraper:
         self.tagPool = []
         self.urlPool = []
         self.parser = parser
+
+    def setBaseUrl(self, base_url):
+        self.base_url = base_url
 
     def getSoup(self, url: str) -> bs4.BeautifulSoup:
         html  = requests.get(url)
@@ -35,14 +38,19 @@ class SubjectScraper:
     def getUrls(self, max = -1):
         return self.urlPool if max < 0 else self.urlPool[:max]
 
-    def extractTextContent(self, start = 0) -> str:
-        soup  = self.getSoup(self.urlPool[start])
-        heading = soup.find('h1').get_text()
-        paragraphs = [p.get_text() for p in soup.find_all("p")]
-        heading = heading.replace("\n", " ") 
-        extractText = [p.replace("\n", " ") for p in paragraphs]
-        extractText.insert(0, heading)
-        return "\n".join(extractText)
+    def extractTextContent(self, max = -1) -> str:
+        textContent = ""
+        for i, url in enumerate(self.urlPool):
+            if max != -1 and i > max:
+                break
+            soup  = self.getSoup(url)
+            heading = soup.find('h1').get_text()
+            paragraphs = [p.get_text() for p in soup.find_all("p")]
+            heading = heading.replace("\n", " ") 
+            extractText = [p.replace("\n", " ") for p in paragraphs]
+            extractText.insert(0, heading)
+            textContent += f'{ i }. ' + "\n".join(extractText) + "\n"
+        return textContent
 
     def printUrlPool(self):
         for url in self.urlPool:
@@ -51,7 +59,8 @@ class SubjectScraper:
 if __name__ == '__main__':
     # 1) Set your starting page here
     START_URL = 'https://docs.oracle.com/cd/F70249_01/pt860pbr1/eng/pt/index.html?focusnode=home'
-    scraper = SubjectScraper(START_URL)
+    scraper = WebScraper()
+    scraper.setBaseUrl(START_URL)
     #scraper.setTagPool("Application Engine", "li.treeParent")
     scraper.setUrlPool("Application Engine",  "li.treeParent", "a.sbchild[href]")
     #scraper.printUrlPool()

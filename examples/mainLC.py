@@ -1,7 +1,7 @@
 from langchain_core.tools import tool, StructuredTool
 from langchain_openai import ChatOpenAI
 from typing import List
-from url.scraper import SubjectScraper
+from url.scraper import WebScraper
 from langchain_core.tools import StructuredTool
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
@@ -11,7 +11,7 @@ from langchain_core.messages import HumanMessage
 
 def getUrls(url: str) -> List[str]:
     """Get the text content from a web page url."""
-    scraper = SubjectScraper(url)
+    scraper = WebScraper(url)
     scraper.setUrlPool("Application Engine",  "li.treeParent", "a.sbchild[href]")
     #return ["Hello World"]
     return scraper.getUrls()
