@@ -20,7 +20,7 @@ class WebScraper:
         html.raise_for_status()
         return bs4.BeautifulSoup(html.text, self.parser) 
 
-    def setUrlPool(self, subject: str, root: str = "", leaf: str = ""):
+    def buildUrlPool(self, subject: str, root: str = "", leaf: str = ""):
         soup  = self.getSoup(self.base_url)
         allTags = soup.select(root)
         self.tagPool = [tag for tag in allTags if tag.get_text(strip=True) in subject ]
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     scraper = WebScraper()
     scraper.setBaseUrl(START_URL)
     #scraper.setTagPool("Application Engine", "li.treeParent")
-    scraper.setUrlPool("Application Engine",  "li.treeParent", "a.sbchild[href]")
+    scraper.buildUrlPool("Application Engine",  "li.treeParent", "a.sbchild[href]")
     #scraper.printUrlPool()
     print("\n\n\n", scraper.getUrls(1))
     print(scraper.extractTextContent())
