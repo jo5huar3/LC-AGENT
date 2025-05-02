@@ -38,6 +38,19 @@ class WebScraper:
     def getUrls(self, max = -1):
         return self.urlPool if max < 0 else self.urlPool[:max]
 
+    def extractTextContFromList(self, urls: list[str]):
+        textContent = ""
+        for i, url in enumerate(urls):
+            soup  = self.getSoup(url)
+            heading = soup.find('h1').get_text()
+            paragraphs = [p.get_text() for p in soup.find_all("p")]
+            heading = heading.replace("\n", " ") 
+            extractText = [p.replace("\n", " ") for p in paragraphs]
+            extractText.insert(0, heading)
+            textContent += f'{ i }. ' + "\n".join(extractText) + "\n"
+        return textContent
+    
+
     def extractTextContent(self, max = -1) -> str:
         textContent = ""
         for i, url in enumerate(self.urlPool):
