@@ -36,8 +36,13 @@ def chatbot(state: State):
     assert(len(message.tool_calls) <= 1)
     return {"messages": [message]}
 
-tools = [ extractUrlContent ]
-llm = ChatOpenAI(model="o1")
+def stream_graph_updates(user_input: str):
+    for event in graph.stream({"messages": [{"role": "user", "content": user_input}]}):
+        for value in event.values():
+            print("Assistant:", value["messages"][-1].content)
+
+tools = [ extractUrlMatches, extractWebContent ]
+llm = ChatOpenAI(model="gpt-4o-mini")
 llm_with_tools = llm.bind_tools(tools)
 
 graph_builder = StateGraph(State)
@@ -58,3 +63,28 @@ graph = graph_builder.compile(checkpointer=memory)
 
 RenderLangGraph(graph)
 
+config = {"configurable": {"thread_id": "main-thread"}}
+
+while True:
+    try:
+        user_input = input("User (quit | exit | q to quit): ")
+
+        if user_input.lower() in ["quit", "exit", "q"]:
+            print("Goodbye!")
+            break
+        #stream_graph_updates(user_input)
+        events = graph.stream(
+            {"messages": [{"role": "user", "content": user_input}]},
+            config,
+            stream_mode="values",
+        )
+        for event in events:
+            event["messages"][-1].pretty_print()
+        #snapshot = graph.get_state(config)
+        #print(snapshot)
+    except:
+        # fallback if input() is not available
+        user_input = "What do you know about LangGraph?"
+        print("User: " + user_input)
+        stream_graph_updates(user_input)
+        break

@@ -24,8 +24,8 @@ class UrlExtractor(BaseModel):
 @tool("url-extractor", args_schema=UrlExtractor, return_direct=False)
 def extractUrlMatches(url: str, subject: str, root: str, leaf: str) -> List[str]:
     """\
-        From a base url, search the subtree of every tag in html document that is of type root for text content that matches subject. Return a list of the urls in the html elements with tag type of leaf \
-        if that subtree is relavent to subject.\
+        From a base url, search the subtree of html element with tag type that matches root.  Extract the urls inside the htmle tag type of leaf \
+        if that subtree is relavent to the subject.\
     """
     scraper.setBaseUrl(url)
     scraper.buildUrlPool(subject, root, leaf)
@@ -33,10 +33,10 @@ def extractUrlMatches(url: str, subject: str, root: str, leaf: str) -> List[str]
 
 @tool
 def extractWebContent(
-    urls: Annotated[List[str], "list of strings over which to scrape the web content of."],
+    urls: Annotated[List[str], "list of urls over which to scrape the web content of."],
 ) -> str:
     """\
-        Extract the web content from every string in urls and return scraped text content as one string.\
+        Extract the web content from every url in list and return all scraped text content as one string.\
     """
     return scraper.extractTextContFromList(urls)
     
