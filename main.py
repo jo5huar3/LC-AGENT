@@ -61,7 +61,7 @@ graph_builder.add_edge(START, "chatbot")
 memory = MemorySaver()
 graph = graph_builder.compile(checkpointer=memory)
 
-RenderLangGraph(graph)
+#RenderLangGraph(graph)
 
 config = {"configurable": {"thread_id": "main-thread"}}
 
